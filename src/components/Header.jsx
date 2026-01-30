@@ -5,6 +5,9 @@ import { useUser } from '../context/UserContext';
 import AuthModal from './AuthModal';
 import '../styles/header.css';
 
+const BASE_URL = import.meta.env.BASE_URL || '/megapark-hotel/';
+const getImagePath = (imageName) => `${BASE_URL}images/${imageName}`;
+
 const Header = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -32,9 +35,10 @@ const Header = () => {
     <>
       <header className="site-header">
         <div className="header-inner">
-          <div className="brand" onClick={handleNavLinkClick} style={{ cursor: 'pointer' }}>
+          <Link to="/" className="brand" onClick={handleNavLinkClick} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}>
+            <img src={getImagePath('logo.png')} alt="Megapark Resort Logo" style={{ height: '40px', width: 'auto' }} />
             <h1 className="header-h1"><span>Megapark Resort</span></h1>
-          </div>
+          </Link>
 
           <button 
             id="navToggle" 
@@ -47,7 +51,7 @@ const Header = () => {
 
           <nav id="mainNav" className={`main-nav ${mobileNavOpen ? 'open' : ''}`}>
             <ul>
-              <li><a href="/#home" onClick={handleNavLinkClick}>Home</a></li>
+              <li><Link to="/" onClick={handleNavLinkClick}>Home</Link></li>
               <li><a href="/#about" onClick={handleNavLinkClick}>About Us</a></li>
               <li><a href="/#menu" onClick={handleNavLinkClick}>Menu</a></li>
               <li><a href="/#events" onClick={handleNavLinkClick}>Events</a></li>
@@ -56,7 +60,7 @@ const Header = () => {
               <li><a href="/#contact" onClick={handleNavLinkClick}>Contact</a></li>
               {user ? (
                 <>
-                  <li><a href="/#profile" className="nav-link" onClick={handleNavLinkClick}>👤 {user.firstName}</a></li>
+                  <li><Link to="/profile" className="nav-link" onClick={handleNavLinkClick}>👤 {user.firstName}</Link></li>
                   <li><button className="nav-btn logout-btn" onClick={() => { logout(); handleNavLinkClick(); }}>Logout</button></li>
                 </>
               ) : null}

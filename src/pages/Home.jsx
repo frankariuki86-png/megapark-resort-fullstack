@@ -19,7 +19,7 @@ const Home = () => {
       title: 'Welcome to Megapark Resort.',
       description: 'Relax in comfort, enjoy authentic Kenyan cuisine, and create unforgettable memories.',
       ctaText: 'Explore the Resort',
-      ctaLink: '#prices'
+      ctaLink: '#about'
     },
     {
       image: getImagePath('home 2.jfif'),
@@ -29,7 +29,7 @@ const Home = () => {
       ctaLink: '#menu'
     },
     {
-      image: '/images/home1.jfif',
+      image: getImagePath('home1.jfif'),
       title: 'Rooms, Events & Celebrations.',
       description: 'Book comfortable rooms, weddings, conferences, and special events with ease.',
       ctaText: 'Book Now',
