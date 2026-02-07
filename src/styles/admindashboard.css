@@ -508,6 +508,47 @@ tr:hover {
   gap: 20px;
 }
 
+.menu-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 20px 0;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pager button {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+}
+
+.pager button:disabled { opacity: 0.5; cursor: not-allowed }
+
+.search-input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  min-width: 220px;
+}
+
+.sort-select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
 .menu-card {
   background: white;
   border: 1px solid #e0e0e0;

@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../context/AdminContext';
+import ConfirmModal from '../components/ConfirmModal';
+import { ToastProvider } from '../components/Toast';
+import ChartMini from '../components/ChartMini';
 import '../styles/admindashboard.css';
 
 const AdminDashboard = () => {
@@ -13,6 +16,71 @@ const AdminDashboard = () => {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [newMenuItem, setNewMenuItem] = useState({ name: '', description: '', category: 'mains', price: '', preparationTime: 15 });
   const [editingMenuItem, setEditingMenuItem] = useState(null);
+
+  // UI enhancement states
+  const [menuSearch, setMenuSearch] = useState('');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedMenuIds, setSelectedMenuIds] = useState(new Set());
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmPayload, setConfirmPayload] = useState(null);
+  const pushToast = (msg, type='info') => {
+    if (typeof window !== 'undefined' && window.__pushToastInternal) window.__pushToastInternal(msg, type)
+    else console.log('TOAST', type, msg)
+  }
+  useEffect(() => { setCurrentPage(1) }, [menuSearch, itemsPerPage]);
+  const filteredMenuItems = useMemo(() => {
+    const q = menuSearch.trim().toLowerCase();
+    let items = menuItems.slice();
+    if (q) items = items.filter(i => (i.name + ' ' + (i.description||'') + ' ' + i.category).toLowerCase().includes(q));
+    if (sortBy === 'price') items.sort((a,b)=>a.price-b.price);
+    if (sortBy === 'name') items.sort((a,b)=>a.name.localeCompare(b.name));
+    return items;
+  }, [menuItems, menuSearch, sortBy]);
+  const totalPages = Math.max(1, Math.ceil(filteredMenuItems.length / itemsPerPage));
+  const paginatedMenuItems = filteredMenuItems.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage);
+  const filteredOrders = useMemo(() => {
+    const q = orderSearch.trim().toLowerCase();
+    if (!q) return foodOrders;
+    return foodOrders.filter(o => (o.customerName + ' ' + o.id + ' ' + (o.customerPhone||'')).toLowerCase().includes(q));
+  }, [foodOrders, orderSearch]);
+
+  // bulk selection helpers
+  const toggleSelect = (id) => {
+    setSelectedMenuIds(prev => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id); else s.add(id);
+      return s;
+    });
+  }
+  const clearSelection = () => setSelectedMenuIds(new Set());
+  const selectAllOnPage = () => setSelectedMenuIds(new Set(paginatedMenuItems.map(i=>i.id)));
+  const bulkDelete = () => {
+    if (selectedMenuIds.size === 0) { pushToast('No items selected', 'info'); return }
+    setConfirmPayload({ type: 'bulk-delete', ids: Array.from(selectedMenuIds) });
+    setShowConfirm(true);
+  }
+
+  const handleConfirm = () => {
+    if (!confirmPayload) return setShowConfirm(false);
+    if (confirmPayload.type === 'delete') {
+      deleteMenuItem(confirmPayload.id);
+      pushToast('Item deleted', 'success');
+    } else if (confirmPayload.type === 'bulk-delete') {
+      confirmPayload.ids.forEach(id => deleteMenuItem(id));
+      pushToast(`${confirmPayload.ids.length} items deleted`, 'success');
+      clearSelection();
+    } else if (confirmPayload.type === 'cancel-order') {
+      cancelFoodOrder(confirmPayload.id);
+      pushToast('Order cancelled', 'info');
+    }
+    setConfirmPayload(null);
+    setShowConfirm(false);
+  }
+
+  const handleCancelConfirm = () => { setConfirmPayload(null); setShowConfirm(false); }
 
   if (!adminUser) {
     navigate('/admin/login');
@@ -32,6 +100,7 @@ const AdminDashboard = () => {
                           events.filter(e => e.paymentStatus === 'pending').length;
 
   return (
+    <ToastProvider>
     <div className="admin-dashboard">
       {/* Header */}
       <div className="admin-header">
@@ -261,9 +330,16 @@ const AdminDashboard = () => {
           <div className="menu-section">
             <div className="menu-header">
               <h2>Menu Management</h2>
-              <button className="btn-add-menu" onClick={() => setShowAddMenu(!showAddMenu)}>
-                {showAddMenu ? '✕ Cancel' : '+ Add Menu Item'}
-              </button>
+              <div style={{display:'flex',gap:12}}>
+                <input className="search-input" placeholder="Search menu items..." value={menuSearch} onChange={(e)=>setMenuSearch(e.target.value)} />
+                <select value={sortBy} onChange={(e)=>setSortBy(e.target.value)} className="sort-select">
+                  <option value="name">Sort: Name</option>
+                  <option value="price">Sort: Price</option>
+                </select>
+                <button className="btn-add-menu" onClick={() => setShowAddMenu(!showAddMenu)}>
+                  {showAddMenu ? '✕ Cancel' : '+ Add Menu Item'}
+                </button>
+              </div>
             </div>
 
             {showAddMenu && (
@@ -308,18 +384,48 @@ const AdminDashboard = () => {
                 <button className="btn-save-menu" onClick={() => {
                   if (newMenuItem.name && newMenuItem.price) {
                     addMenuItem(newMenuItem);
+                    pushToast('Menu item added', 'success');
                     setNewMenuItem({ name: '', description: '', category: 'mains', price: '', preparationTime: 15 });
                     setShowAddMenu(false);
+                  } else {
+                    pushToast('Please provide a name and price', 'error');
                   }
                 }}>Save Item</button>
               </div>
             )}
 
+            <div className="menu-toolbar">
+              <div className="bulk-actions">
+                <button onClick={selectAllOnPage} className="action-btn">Select Page</button>
+                <button onClick={clearSelection} className="action-btn">Clear</button>
+                <button onClick={bulkDelete} className="action-btn delete">Bulk Delete</button>
+              </div>
+              <div className="pagination-controls">
+                <label>Per page: 
+                  <select value={itemsPerPage} onChange={(e)=>setItemsPerPage(parseInt(e.target.value))}>
+                    <option value={4}>4</option>
+                    <option value={8}>8</option>
+                    <option value={12}>12</option>
+                  </select>
+                </label>
+                <div className="pager">
+                  <button disabled={currentPage===1} onClick={()=>setCurrentPage(1)}>&lt;&lt;</button>
+                  <button disabled={currentPage===1} onClick={()=>setCurrentPage(p=>Math.max(1,p-1))}>&lt;</button>
+                  <span>Page {currentPage} / {totalPages}</span>
+                  <button disabled={currentPage===totalPages} onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))}>&gt;</button>
+                  <button disabled={currentPage===totalPages} onClick={()=>setCurrentPage(totalPages)}>&gt;&gt;</button>
+                </div>
+              </div>
+            </div>
+
             <div className="menu-grid">
-              {menuItems.map(item => (
+              {paginatedMenuItems.map(item => (
                 <div key={item.id} className="menu-card">
                   <div className="menu-card-header">
-                    <h4>{item.name}</h4>
+                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <input type="checkbox" checked={selectedMenuIds.has(item.id)} onChange={()=>toggleSelect(item.id)} />
+                      <h4>{item.name}</h4>
+                    </div>
                     <span className={`availability-badge ${item.availability ? 'available' : 'unavailable'}`}>
                       {item.availability ? '✓ Available' : '✕ Unavailable'}
                     </span>
@@ -340,15 +446,16 @@ const AdminDashboard = () => {
                       onBlur={(e) => {
                         if (e.target.value) {
                           updateMenuItemPrice(item.id, parseFloat(e.target.value));
+                          pushToast('Price updated', 'success');
                           e.target.value = '';
                         }
                       }}
                     />
-                    <button className="action-btn toggle" onClick={() => toggleMenuItemAvailability(item.id)}>
-                      {item.availability ? '🔒 Disable' : '🔓 Enable'}
+                    <button className="action-btn toggle" onClick={() => { toggleMenuItemAvailability(item.id); pushToast(item.availability ? 'Item disabled' : 'Item enabled', 'info') }}>
+                      {item.availability ? 'Disable' : 'Enable'}
                     </button>
-                    <button className="action-btn delete" onClick={() => deleteMenuItem(item.id)}>
-                      🗑️ Delete
+                    <button className="action-btn delete" onClick={() => { setConfirmPayload({ type: 'delete', id: item.id }); setShowConfirm(true); }}>
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -361,6 +468,9 @@ const AdminDashboard = () => {
         {activeTab === 'orders' && (
           <div className="orders-section">
             <h2>Food Orders Management</h2>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, marginBottom:12}}>
+              <input className="search-input" placeholder="Search orders by name or ID..." value={orderSearch} onChange={(e)=>setOrderSearch(e.target.value)} />
+            </div>
             <div className="orders-summary">
               <div className="order-stat">
                 <span className="stat-number">{foodOrders.length}</span>
@@ -381,7 +491,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className="orders-list">
-              {foodOrders.map(order => (
+              {filteredOrders.map(order => (
                 <div key={order.id} className="order-card">
                   <div className="order-header">
                     <div>
@@ -438,7 +548,7 @@ const AdminDashboard = () => {
                   <div className="order-actions">
                     <select
                       value={order.status}
-                      onChange={(e) => updateFoodOrder(order.id, { status: e.target.value })}
+                      onChange={(e) => { updateFoodOrder(order.id, { status: e.target.value }); pushToast('Order status updated', 'success') }}
                       className="status-select"
                     >
                       <option value="pending">Pending</option>
@@ -447,7 +557,7 @@ const AdminDashboard = () => {
                       <option value="ready">Ready</option>
                       <option value="delivered">Delivered</option>
                     </select>
-                    <button className="action-btn cancel" onClick={() => cancelFoodOrder(order.id)}>
+                    <button className="action-btn cancel" onClick={() => { setConfirmPayload({ type: 'cancel-order', id: order.id }); setShowConfirm(true); }}>
                       Cancel Order
                     </button>
                   </div>
@@ -457,7 +567,18 @@ const AdminDashboard = () => {
           </div>
         )}
       </div>
+      {showConfirm && (
+        <ConfirmModal
+          isOpen={showConfirm}
+          title={confirmPayload && confirmPayload.type === 'bulk-delete' ? 'Delete items?' : confirmPayload && confirmPayload.type === 'cancel-order' ? 'Cancel Order?' : 'Delete item?'}
+          message={confirmPayload && confirmPayload.type === 'bulk-delete' ? `Are you sure you want to delete ${confirmPayload.ids.length} items?` : confirmPayload && confirmPayload.type === 'cancel-order' ? 'Are you sure you want to cancel this order?' : 'This action cannot be undone.'}
+          onConfirm={handleConfirm}
+          onCancel={handleCancelConfirm}
+          danger={confirmPayload && (confirmPayload.type === 'bulk-delete' || confirmPayload.type === 'delete' || confirmPayload.type === 'cancel-order')}
+        />
+      )}
     </div>
+    </ToastProvider>
   );
 };
 
