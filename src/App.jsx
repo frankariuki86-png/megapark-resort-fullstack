@@ -15,6 +15,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import './styles/global.css';
 
 function App() {
+  console.log('[megapark] App render')
   return (
     <ThemeProvider>
       <LanguageProvider>

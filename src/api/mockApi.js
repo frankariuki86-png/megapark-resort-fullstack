@@ -1,79 +1,121 @@
-// Minimal mock API using localStorage to persist mock data between reloads
-// Not wired into AdminContext automatically — can be used later to replace in-memory operations.
+"use strict";
 
-const KEY_MENU = 'mockapi_menu_items_v1';
-const KEY_ORDERS = 'mockapi_food_orders_v1';
+// Backend API Client with JWT Authentication
+const BACKEND_URL = (typeof window !== 'undefined' && window.__MEGAPARK_BACKEND_URL) || 'http://localhost:3000';
+const TIMEOUT = 8000;
+const TOKEN_KEY = '__megapark_jwt__';
+const REFRESH_TOKEN_KEY = '__megapark_refresh__';
 
-const wait = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
-
-const read = (key, fallback) => {
+// Token storage helpers
+const getToken = () => {
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch (e) {
-    return fallback;
+    if (typeof localStorage !== 'undefined') return localStorage.getItem(TOKEN_KEY);
+  } catch (e) {}
+  return null;
+};
+
+const getRefreshToken = () => {
+  try {
+    if (typeof localStorage !== 'undefined') return localStorage.getItem(REFRESH_TOKEN_KEY);
+  } catch (e) {}
+  return null;
+};
+
+const setToken = (token) => {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      else localStorage.removeItem(TOKEN_KEY);
+    }
+  } catch (e) {}
+};
+
+const setTokens = (accessToken, refreshToken) => {
+  setToken(accessToken);
+  try {
+    if (typeof localStorage !== 'undefined') {
+      if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      else localStorage.removeItem(REFRESH_TOKEN_KEY);
+    }
+  } catch (e) {}
+};
+
+// HTTP call wrapper
+const call = async (method, path, body = null, skipAuth = false) => {
+  const url = `${BACKEND_URL}${path}`;
+  const headers = { 'Content-Type': 'application/json' };
+  
+  // Add JWT token if available (except for login endpoint)
+  if (path !== '/api/auth/login' && !skipAuth) {
+    const token = getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
   }
-}
+  
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Backend timeout')), TIMEOUT);
+    fetch(url, opts)
+      .then(async res => {
+        clearTimeout(timer);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) return reject(new Error(json.error || `HTTP ${res.status}`));
+        resolve(json);
+      })
+      .catch(err => { clearTimeout(timer); reject(err); });
+  });
+};
 
-const write = (key, data) => {
-  localStorage.setItem(key, JSON.stringify(data));
-}
+// Auth endpoints
+export const loginAdmin = async (email, password) => {
+  const result = await call('POST', '/api/auth/login', { email, password });
+  if (result.accessToken && result.refreshToken) setTokens(result.accessToken, result.refreshToken);
+  return result;
+};
 
-export const fetchMenuItems = async () => {
-  await wait(150);
-  return read(KEY_MENU, []);
-}
+export const refreshAccessToken = async () => {
+  const refreshTok = getRefreshToken();
+  if (!refreshTok) throw new Error('No refresh token available');
+  
+  const result = await call('POST', '/api/auth/refresh', { refreshToken: refreshTok }, true);
+  if (result.accessToken && result.refreshToken) {
+    setTokens(result.accessToken, result.refreshToken);
+  }
+  return result;
+};
 
-export const saveMenuItems = async (items) => {
-  await wait(150);
-  write(KEY_MENU, items);
-  return items;
-}
+export const logoutAdmin = async () => {
+  await call('POST', '/api/auth/logout', null, true).catch(() => {});
+  setTokens(null, null);
+  return { message: 'Logged out' };
+};
 
-export const createMenuItem = async (item) => {
-  const items = read(KEY_MENU, []);
-  const newItem = { ...item, id: `menu-${Date.now()}`, createdAt: new Date().toISOString() };
-  items.unshift(newItem);
-  write(KEY_MENU, items);
-  await wait(150);
-  return newItem;
-}
+// Menu endpoints
+export const fetchMenuItems = () => call('GET', '/api/menu');
+export const createMenuItem = (item) => call('POST', '/api/menu', item);
+export const updateMenuItemApi = (id, updates) => call('PUT', `/api/menu/${id}`, updates);
+export const deleteMenuItemApi = (id) => call('DELETE', `/api/menu/${id}`);
+export const updateMenuItemPrice = (id, price) => call('PUT', `/api/menu/${id}`, { price });
 
-export const updateMenuItemApi = async (id, updates) => {
-  const items = read(KEY_MENU, []);
-  const next = items.map(i => i.id === id ? { ...i, ...updates, updatedAt: new Date().toISOString() } : i);
-  write(KEY_MENU, next);
-  await wait(150);
-  return next.find(i => i.id === id);
-}
+// Order endpoints
+export const fetchOrders = () => call('GET', '/api/orders');
+export const createOrder = (order) => call('POST', '/api/orders', order);
+export const updateOrderApi = (id, updates) => call('PUT', `/api/orders/${id}`, updates);
 
-export const deleteMenuItemApi = async (id) => {
-  const items = read(KEY_MENU, []);
-  const next = items.filter(i => i.id !== id);
-  write(KEY_MENU, next);
-  await wait(120);
-  return true;
-}
+// Payment endpoints
+export const createPaymentIntent = (order) => call('POST', '/api/payments/create-intent', order);
+export const confirmPaymentIntent = (intentId, paymentMethodId) => 
+  call('POST', '/api/payments/confirm-intent', { intentId, paymentMethodId });
+export const getPaymentIntent = (intentId) => call('GET', `/api/payments/intent/${intentId}`);
 
-export const fetchOrders = async () => {
-  await wait(150);
-  return read(KEY_ORDERS, []);
-}
-
-export const updateOrderApi = async (id, updates) => {
-  const orders = read(KEY_ORDERS, []);
-  const next = orders.map(o => o.id === id ? { ...o, ...updates, updatedAt: new Date().toISOString() } : o);
-  write(KEY_ORDERS, next);
-  await wait(150);
-  return next.find(o => o.id === id);
-}
-
-export const saveOrders = async (orders) => {
-  write(KEY_ORDERS, orders);
-  await wait(100);
-  return orders;
-}
+// Legacy compatibility
+export const saveMenuItems = (items) => Promise.resolve(items);
+export const saveOrders = (orders) => Promise.resolve(orders);
 
 export default {
-  fetchMenuItems, saveMenuItems, createMenuItem, updateMenuItemApi, deleteMenuItemApi, fetchOrders, updateOrderApi
+  fetchMenuItems, createMenuItem, updateMenuItemApi, deleteMenuItemApi, updateMenuItemPrice,
+  fetchOrders, createOrder, updateOrderApi, loginAdmin, logoutAdmin, refreshAccessToken,
+  createPaymentIntent, confirmPaymentIntent, getPaymentIntent,
+  saveMenuItems, saveOrders, getToken, setToken, getRefreshToken, setTokens
 };

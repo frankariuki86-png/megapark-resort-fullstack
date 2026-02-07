@@ -1,0 +1,267 @@
+openapi: 3.0.3
+info:
+  title: MegaPark Hotel API
+  version: '1.0.0'
+  description: API spec for rooms, bookings, events, menu and food orders for Megapark Hotel
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/menu:
+    get:
+      summary: List menu items
+      responses:
+        '200':
+          description: Array of menu items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MenuItem'
+    post:
+      summary: Create a menu item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuItemCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuItem'
+  /api/menu/{id}:
+    put:
+      summary: Update menu item
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuItemUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuItem'
+    delete:
+      summary: Delete menu item
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+  /api/orders:
+    get:
+      summary: List orders
+      responses:
+        '200':
+          description: Array of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+    post:
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+  /api/orders/{id}:
+    put:
+      summary: Update order
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+components:
+  schemas:
+    MenuItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [appetizers, mains, sides, desserts, drinks]
+        price:
+          type: number
+        image:
+          type: string
+          nullable: true
+        availability:
+          type: boolean
+        preparationTime:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    MenuItemCreate:
+      type: object
+      required: [name, price]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        price:
+          type: number
+        image:
+          type: string
+        preparationTime:
+          type: integer
+    MenuItemUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        price:
+          type: number
+        image:
+          type: string
+        availability:
+          type: boolean
+        preparationTime:
+          type: integer
+    OrderItem:
+      type: object
+      properties:
+        itemName:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+        totalPrice:
+          type: number
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        customerPhone:
+          type: string
+        orderType:
+          type: string
+          enum: [delivery, dine-in, pickup]
+        orderDate:
+          type: string
+          format: date-time
+        deliveryDate:
+          type: string
+          nullable: true
+        deliveryAddress:
+          type: string
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        subtotal:
+          type: number
+        deliveryFee:
+          type: number
+        tax:
+          type: number
+        totalAmount:
+          type: number
+        status:
+          type: string
+          enum: [pending, confirmed, preparing, ready, delivered, cancelled]
+        paymentStatus:
+          type: string
+        paymentMethod:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    OrderCreate:
+      type: object
+      required: [customerName, items, subtotal, totalAmount]
+      properties:
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        customerPhone:
+          type: string
+        orderType:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        subtotal:
+          type: number
+        deliveryFee:
+          type: number
+        tax:
+          type: number
+        totalAmount:
+          type: number
+    OrderUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        paymentStatus:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
