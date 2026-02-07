@@ -68,6 +68,12 @@ export const updateOrderApi = async (id, updates) => {
   return next.find(o => o.id === id);
 }
 
+export const saveOrders = async (orders) => {
+  write(KEY_ORDERS, orders);
+  await wait(100);
+  return orders;
+}
+
 export default {
   fetchMenuItems, saveMenuItems, createMenuItem, updateMenuItemApi, deleteMenuItemApi, fetchOrders, updateOrderApi
 };

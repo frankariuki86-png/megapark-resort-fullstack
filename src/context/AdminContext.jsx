@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { fetchMenuItems, saveMenuItems, createMenuItem, updateMenuItemApi, deleteMenuItemApi, fetchOrders, updateOrderApi, saveOrders } from '../api/mockApi';
 
 const AdminContext = createContext();
 
@@ -225,6 +226,29 @@ export const AdminProvider = ({ children }) => {
     }
   ]);
 
+  // Initialize mock API storage on mount (seed if empty)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const remoteMenu = await fetchMenuItems();
+        if (mounted) {
+          if (remoteMenu && remoteMenu.length > 0) setMenuItems(remoteMenu);
+          else await saveMenuItems(menuItems);
+        }
+        const remoteOrders = await fetchOrders();
+        if (mounted) {
+          if (remoteOrders && remoteOrders.length > 0) setFoodOrders(remoteOrders);
+          else await saveOrders(foodOrders);
+        }
+      } catch (err) {
+        // don't block app on mock api failures
+        // console.warn('mockApi init failed', err);
+      }
+    })();
+    return () => { mounted = false };
+  }, []);
+
   // Mock admin credentials - in production, validate against backend
   const adminLogin = useCallback((email, password) => {
     // Simple validation - in production, this would call a backend API
@@ -312,69 +336,52 @@ export const AdminProvider = ({ children }) => {
   }, []);
 
   // Menu Item Management
-  const addMenuItem = useCallback((menuItem) => {
-    const newItem = {
-      ...menuItem,
-      id: `menu-${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    setMenuItems(prev => [newItem, ...prev]);
-    return newItem;
+  const addMenuItem = useCallback(async (menuItem) => {
+    const created = await createMenuItem(menuItem);
+    setMenuItems(prev => [created, ...prev]);
+    return created;
   }, []);
 
-  const updateMenuItem = useCallback((itemId, updates) => {
-    setMenuItems(prev =>
-      prev.map(item =>
-        item.id === itemId
-          ? { ...item, ...updates, updatedAt: new Date().toISOString() }
-          : item
-      )
-    );
+  const updateMenuItem = useCallback(async (itemId, updates) => {
+    const updated = await updateMenuItemApi(itemId, updates);
+    setMenuItems(prev => prev.map(item => item.id === itemId ? updated : item));
+    return updated;
   }, []);
 
-  const deleteMenuItem = useCallback((itemId) => {
+  const deleteMenuItem = useCallback(async (itemId) => {
+    await deleteMenuItemApi(itemId);
     setMenuItems(prev => prev.filter(item => item.id !== itemId));
   }, []);
 
-  const updateMenuItemPrice = useCallback((itemId, newPrice) => {
-    setMenuItems(prev =>
-      prev.map(item =>
-        item.id === itemId
-          ? { ...item, price: newPrice, updatedAt: new Date().toISOString() }
-          : item
-      )
-    );
+  const updateMenuItemPrice = useCallback(async (itemId, newPrice) => {
+    const updated = await updateMenuItemApi(itemId, { price: newPrice });
+    setMenuItems(prev => prev.map(item => item.id === itemId ? updated : item));
+    return updated;
   }, []);
 
-  const toggleMenuItemAvailability = useCallback((itemId) => {
-    setMenuItems(prev =>
-      prev.map(item =>
-        item.id === itemId
-          ? { ...item, availability: !item.availability }
-          : item
-      )
-    );
-  }, []);
+  const toggleMenuItemAvailability = useCallback(async (itemId) => {
+    // optimistic update
+    setMenuItems(prev => prev.map(item => item.id === itemId ? { ...item, availability: !item.availability } : item));
+    const cur = menuItems.find(i => i.id === itemId);
+    const newAvail = cur ? !cur.availability : true;
+    try {
+      await updateMenuItemApi(itemId, { availability: newAvail });
+    } catch (e) {
+      // ignore for mock
+    }
+  }, [menuItems]);
 
   // Food Order Management
-  const updateFoodOrder = useCallback((orderId, updates) => {
-    setFoodOrders(prev =>
-      prev.map(order =>
-        order.id === orderId
-          ? { ...order, ...updates, updatedAt: new Date().toISOString() }
-          : order
-      )
-    );
+  const updateFoodOrder = useCallback(async (orderId, updates) => {
+    const updated = await updateOrderApi(orderId, updates);
+    setFoodOrders(prev => prev.map(order => order.id === orderId ? updated : order));
+    return updated;
   }, []);
 
-  const cancelFoodOrder = useCallback((orderId) => {
-    setFoodOrders(prev =>
-      prev.map(order =>
-        order.id === orderId
-          ? { ...order, status: 'cancelled', updatedAt: new Date().toISOString() }
-          : order
-      )
-    );
+  const cancelFoodOrder = useCallback(async (orderId) => {
+    const updated = await updateOrderApi(orderId, { status: 'cancelled' });
+    setFoodOrders(prev => prev.map(order => order.id === orderId ? updated : order));
+    return updated;
   }, []);
 
   const value = {
