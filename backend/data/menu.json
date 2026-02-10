@@ -1,5 +1,41 @@
 [
   {
+    "id": "menu-1770750885607",
+    "name": "Test Item",
+    "category": "drinks",
+    "price": 150,
+    "preparationTime": 15,
+    "createdAt": "2026-02-10T19:14:45.607Z",
+    "updatedAt": "2026-02-10T19:14:45.780Z"
+  },
+  {
+    "id": "menu-1770750885478",
+    "name": "Test Dish",
+    "description": "Test Description",
+    "category": "mains",
+    "price": 500,
+    "preparationTime": 15,
+    "createdAt": "2026-02-10T19:14:45.478Z"
+  },
+  {
+    "id": "menu-1770750826709",
+    "name": "Test Item",
+    "category": "drinks",
+    "price": 150,
+    "preparationTime": 15,
+    "createdAt": "2026-02-10T19:13:46.709Z",
+    "updatedAt": "2026-02-10T19:13:46.811Z"
+  },
+  {
+    "id": "menu-1770750826646",
+    "name": "Test Dish",
+    "description": "Test Description",
+    "category": "mains",
+    "price": 500,
+    "preparationTime": 15,
+    "createdAt": "2026-02-10T19:13:46.646Z"
+  },
+  {
     "id": "menu-1770719433854",
     "name": "chapati beans",
     "description": "quality chapos",

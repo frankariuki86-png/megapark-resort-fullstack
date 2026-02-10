@@ -58,18 +58,34 @@ const PaymentGateway = ({ isOpen, onClose, total, onPaymentSuccess }) => {
     }
 
     setIsProcessing(true);
-    // Simulate payment processing
-    setTimeout(() => {
+    try {
+      // Create payment intent on backend
+      const resp = await fetch('/api/payments/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ totalPrice: total, currency: 'usd', items: [] })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Failed to create payment intent');
+
+      // Confirm intent (backend will mock when STRIPE not configured)
+      const confirmResp = await fetch('/api/payments/confirm-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intentId: data.intentId, paymentMethodId: 'pm_card_visa' })
+      });
+      const confirmData = await confirmResp.json();
+      if (!confirmResp.ok || confirmData.status !== 'succeeded') throw new Error(confirmData.error || 'Payment failed');
+
       setIsProcessing(false);
       setPaymentConfirmed(true);
-      setTransactionId(`STRIPE-${Date.now()}`);
-      onPaymentSuccess({
-        method: 'stripe',
-        last4: cardForm.cardNumber.slice(-4),
-        amount: total,
-        transactionId: `STRIPE-${Date.now()}`
-      });
-    }, 2000);
+      const txId = confirmData.chargeId || `STRIPE-${Date.now()}`;
+      setTransactionId(txId);
+      onPaymentSuccess({ method: 'stripe', last4: cardForm.cardNumber.slice(-4), amount: total, transactionId: txId });
+    } catch (err) {
+      setIsProcessing(false);
+      alert(err.message || 'Stripe payment failed');
+    }
   };
 
   const handlePayPalPayment = async (e) => {

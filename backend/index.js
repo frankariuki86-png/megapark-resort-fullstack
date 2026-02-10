@@ -3,6 +3,18 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 
+// Initialize Sentry if configured
+try {
+  const Sentry = require('@sentry/node');
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.05 });
+    // Attach Sentry request handler early
+    // Note: We attach handlers below if present
+  }
+} catch (e) {
+  // @sentry/node may be optional in development, ignore if missing
+}
+
 // Import logging, security, and swagger
 const logger = require('./services/logger');
 const { requestLogger, errorHandler } = require('./middleware/logging');
