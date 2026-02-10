@@ -1,0 +1,12 @@
+{
+  "customerName": "Test Customer",
+  "customerEmail": "test@example.com",
+  "customerPhone": "+254712345678",
+  "items": [
+    { "itemName": "Nyama Choma", "quantity": 2, "unitPrice": 850, "totalPrice": 1700 }
+  ],
+  "orderType": "delivery",
+  "deliveryAddress": "123 Test Street",
+  "totalAmount": 1700,
+  "paymentMethod": "mpesa"
+}

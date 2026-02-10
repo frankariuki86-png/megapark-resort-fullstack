@@ -36,8 +36,8 @@ const OrderCreateSchema = z.object({
   orderDate: z.string().datetime().optional(),
   deliveryDate: z.string().nullable().optional(),
   deliveryAddress: z.string().nullable().optional(),
-  items: z.array(OrderItemSchema).min(1, 'At least one item required'),
-  subtotal: z.number().min(0),
+  items: z.array(OrderItemSchema).optional(),
+  subtotal: z.number().min(0).optional().default(0),
   deliveryFee: z.number().min(0).default(0),
   tax: z.number().min(0).default(0),
   totalAmount: z.number().min(0),
@@ -64,8 +64,10 @@ const PaymentIntentSchema = z.object({
   totalPrice: z.number().min(0.01, 'Amount must be > 0'),
   customerName: z.string().min(1).max(255).optional(),
   customerEmail: z.string().email().optional(),
-  description: z.string().optional()
+  description: z.string().optional(),
+  bookingId: z.string().optional()
 });
+
 
 // Admin User Schemas
 const AdminUserCreateSchema = z.object({

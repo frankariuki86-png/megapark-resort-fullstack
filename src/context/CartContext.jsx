@@ -163,26 +163,70 @@ export const CartProvider = ({ children }) => {
     }
   }, [cart]);
 
-  // Create a booking (room/hall) after successful payment
-  const addBooking = useCallback((booking, paymentData = null) => {
-    const orderId = `BOOK-${Date.now()}`;
+  // Create a booking (room/hall) and attempt backend persistence + payment
+  const addBooking = useCallback(async (booking, customer = {}) => {
     const orderDate = new Date();
+    const localId = `BOOK-${Date.now()}`;
 
-    const newBooking = {
-      id: orderId,
+    const localBooking = {
+      id: localId,
       type: booking.type || 'booking',
       date: orderDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
       dateTime: orderDate.toISOString(),
       items: [booking],
       total: booking.price || 0,
       status: 'booked',
-      paymentStatus: paymentData ? 'paid' : 'pending',
-      paymentData: paymentData || null,
-      tracking: { stage: 1, lastUpdate: orderDate.toISOString(), location: 'Booking confirmed' }
+      paymentStatus: 'pending',
+      paymentData: null,
+      tracking: { stage: 1, lastUpdate: orderDate.toISOString(), location: 'Booking pending' }
     };
 
-    setOrders(prev => [newBooking, ...prev]);
-    return newBooking;
+    // Optimistically add local booking
+    setOrders(prev => [localBooking, ...prev]);
+
+    try {
+      // Persist booking to backend
+      const createRes = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...booking, customerName: customer.name, customerEmail: customer.email, customerPhone: customer.phone })
+      });
+      const created = await createRes.json();
+      const bookingId = created.id || created.id || localId;
+
+      // Create payment intent including bookingId metadata
+      const piResp = await fetch('/api/payments/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ totalPrice: booking.price || 0, customerName: customer.name || '', customerEmail: customer.email || '', bookingId })
+      });
+      const piData = await piResp.json();
+      if (!piResp.ok) throw new Error(piData.error || 'Failed to create payment intent');
+
+      // Confirm payment (backend may mock confirm when stripe not configured)
+      const confirmResp = await fetch('/api/payments/confirm-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intentId: piData.intentId, paymentMethodId: 'pm_card_visa' })
+      });
+      const confirmData = await confirmResp.json();
+      if (!confirmResp.ok || confirmData.status !== 'succeeded') throw new Error(confirmData.error || 'Payment failed');
+
+      // Update booking payment status on backend
+      await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_status: 'paid', payment_data: { chargeId: confirmData.chargeId || null, intentId: piData.intentId } })
+      });
+
+      // Update local orders list to mark paid
+      setOrders(prev => prev.map(b => b.id === localId ? { ...b, id: bookingId, paymentStatus: 'paid', paymentData: { intentId: piData.intentId }, status: 'booked' } : b));
+      return { ...localBooking, id: bookingId, paymentStatus: 'paid' };
+    } catch (err) {
+      console.error('Booking/payout failed:', err.message || err);
+      // leave local booking as pending
+      return localBooking;
+    }
   }, []);
 
   const value = {

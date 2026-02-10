@@ -14,6 +14,9 @@ describe('Orders API', () => {
       })
     });
     const loginData = await loginRes.json();
+    if (!loginRes.ok || !loginData.accessToken) {
+      throw new Error(`Login failed: ${loginRes.status} ${JSON.stringify(loginData)}`);
+    }
     accessToken = loginData.accessToken;
   });
 
@@ -33,7 +36,7 @@ describe('Orders API', () => {
       customerEmail: 'test@example.com',
       customerPhone: '+254712345678',
       items: [
-        { itemName: 'Nyama Choma', quantity: 2, unitPrice: 850 }
+        { itemName: 'Nyama Choma', quantity: 2, unitPrice: 850, totalPrice: 1700 }
       ],
       orderType: 'delivery',
       deliveryAddress: '123 Test Street',
@@ -50,6 +53,10 @@ describe('Orders API', () => {
       body: JSON.stringify(newOrder)
     });
 
+    if (!res.ok) {
+      const error = await res.json();
+      console.error('Order creation failed:', res.status, JSON.stringify(error));
+    }
     expect(res.status).toBe(201);
     const data = await res.json();
     expect(data.customerName).toBe('Test Customer');

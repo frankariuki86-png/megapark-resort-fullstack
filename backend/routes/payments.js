@@ -6,13 +6,13 @@ const paymentService = require('../services/paymentService');
 const { sendEmail } = require('../services/emailService');
 const mpesaService = require('../services/mpesaService');
 
-module.exports = ({ logger }) => {
+module.exports = ({ logger, readJSON, writeJSON, bookingsPath, pgClient }) => {
   // Create payment intent for order
   router.post('/create-intent', async (req, res) => {
     try {
       const payload = PaymentIntentSchema.parse(req.body);
-      
-      const intent = await paymentService.createPaymentIntent(payload, logger);
+      // pass bookingId through to payment service so metadata is set
+      const intent = await paymentService.createPaymentIntent(payload, logger, { bookingId: payload.bookingId });
       
       return res.json({
         clientSecret: intent.clientSecret,
@@ -80,13 +80,40 @@ module.exports = ({ logger }) => {
   });
 
   // Handle Stripe webhook
-  router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
       const signature = req.headers['stripe-signature'];
       const event = paymentService.verifyWebhookSignature(req.body, signature);
       
       // Handle event
       const result = await paymentService.handleWebhookEvent(event, logger);
+      
+      // If a payment intent succeeded and contains booking metadata, update booking record
+      if (event.type === 'payment_intent.succeeded') {
+        const intent = event.data.object;
+        const bookingId = intent.metadata?.bookingId || intent.metadata?.orderId;
+        const chargeId = intent.charges?.data?.[0]?.id || null;
+        if (bookingId) {
+          try {
+            if (pgClient) {
+              await pgClient.query('UPDATE bookings SET payment_status = $1, payment_data = $2, updated_at = now() WHERE id = $3', ['paid', JSON.stringify({ chargeId, intentId: intent.id }), bookingId]);
+            } else if (bookingsPath && readJSON && writeJSON) {
+              const bookings = readJSON(bookingsPath, []);
+              const idx = bookings.findIndex(b => b.id === bookingId);
+              if (idx !== -1) {
+                bookings[idx] = { ...bookings[idx], paymentStatus: 'paid', paymentData: { chargeId, intentId: intent.id }, updatedAt: new Date().toISOString() };
+                writeJSON(bookingsPath, bookings);
+                if (bookings[idx].customerEmail) {
+                  // send confirmation email
+                  try { await sendEmail(bookings[idx].customerEmail, 'bookingConfirmation', bookings[idx], logger); } catch (e) { logger.warn('Failed to send booking confirmation', e.message); }
+                }
+              }
+            }
+          } catch (e) {
+            logger.error('Failed to update booking after payment webhook', e.message);
+          }
+        }
+      }
       
       // Optionally send confirmation email for payment_intent.succeeded
       if (event.type === 'payment_intent.succeeded') {

@@ -5,7 +5,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_stub'
  * @param {object} order - Order object with totalPrice, customerEmail, etc.
  * @param {object} logger - Pino logger
  */
-const createPaymentIntent = async (order, logger) => {
+const createPaymentIntent = async (order, logger, metadata = {}) => {
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
       logger.warn('Stripe not configured, returning mock intent');
@@ -14,7 +14,8 @@ const createPaymentIntent = async (order, logger) => {
         clientSecret: `pi_test_${Date.now()}_secret_test`,
         status: 'requires_payment_method',
         amount: Math.round(order.totalPrice * 100), // Convert to cents
-        currency: 'usd'
+        currency: 'usd',
+        metadata: metadata || {}
       };
     }
 
@@ -22,12 +23,8 @@ const createPaymentIntent = async (order, logger) => {
       amount: Math.round(order.totalPrice * 100), // Stripe uses cents
       currency: 'usd',
       payment_method_types: ['card'],
-      description: `Order #${order.id}`,
-      metadata: {
-        orderId: order.id,
-        customerName: order.customerName,
-        customerEmail: order.customerEmail
-      },
+      description: `Order #${order.id || ''}`,
+      metadata: Object.assign({ orderId: order.id, customerName: order.customerName, customerEmail: order.customerEmail }, metadata || {}),
       receipt_email: order.customerEmail
     });
 

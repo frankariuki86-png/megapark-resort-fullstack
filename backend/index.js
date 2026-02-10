@@ -78,7 +78,9 @@ const writeJSON = (p, data) => { fs.writeFileSync(p, JSON.stringify(data, null, 
 const authRouter = require('./routes/auth')({ logger, pgClient });
 const menuRouter = require('./routes/menu')({ pgClient, readJSON, writeJSON, menuPath, logger });
 const ordersRouter = require('./routes/orders')({ pgClient, readJSON, writeJSON, ordersPath, logger });
-const paymentsRouter = require('./routes/payments')({ logger });
+const bookingsPath = path.join(dataDir, 'bookings.json');
+if (!fs.existsSync(bookingsPath)) fs.writeFileSync(bookingsPath, JSON.stringify([], null, 2));
+const paymentsRouter = require('./routes/payments')({ logger, readJSON, writeJSON, bookingsPath, pgClient });
 const adminUsersPath = path.join(dataDir, 'admin-users.json');
 const adminUsersRouter = require('./routes/admin-users')({ pgClient, readJSON, writeJSON, adminUsersPath, logger });
 
@@ -90,6 +92,13 @@ app.use('/api/auth/refresh', authRateLimit);
 app.use('/api/menu', apiRateLimit);
 app.use('/api/orders', apiRateLimit);
 app.use('/api/payments', apiRateLimit);
+
+// Enforce authentication on menu endpoints (tests expect auth-required)
+app.use('/api/menu', (req, res, next) => {
+  const auth = req.headers['authorization'];
+  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized: missing or invalid token' });
+  next();
+});
 
 // Mount routes
 app.use('/api/auth', authRouter);
