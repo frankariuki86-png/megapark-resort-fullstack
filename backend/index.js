@@ -54,11 +54,21 @@ let pgClient = null;
       if (pgSslRequired) {
         clientOptions.ssl = { rejectUnauthorized: false };
       }
+      // Add a query timeout to prevent hanging queries
+      clientOptions.commandTimeout = 5000; // 5 second timeout
       pgClient = new Client(clientOptions);
-      await pgClient.connect();
+      
+      // Set a connection timeout
+      const connectPromise = pgClient.connect();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Postgres connection timeout')), 10000)
+      );
+      
+      await Promise.race([connectPromise, timeoutPromise]);
       logger.info('Connected to Postgres');
     } catch (e) {
       logger.warn(`Postgres connection failed: ${e.message}`);
+      // Ensure pgClient is null when connection fails
       pgClient = null;
     }
   }

@@ -16,6 +16,7 @@ const Header = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { getCartCount } = useCart();
   const { user, logout } = useUser();
+  const [profileOpen, setProfileOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
   const { language, changeLanguage, availableLanguages } = useLanguage();
   const cartCount = getCartCount();
@@ -124,9 +125,17 @@ const Header = () => {
             </Link>
 
             {user ? (
-              <div className="user-info">
-                <span className="user-name"><User size={18} /> {user.firstName}</span>
-                <button className="logout-btn-small" onClick={() => logout()} title="Logout" aria-label="Logout"><X size={18} /></button>
+              <div className="user-info" tabIndex={0} onBlur={() => setProfileOpen(false)}>
+                <button className="profile-button" onClick={() => setProfileOpen(v => !v)} aria-haspopup="true" aria-expanded={profileOpen}>
+                  <User size={18} /> <span className="user-name-text">{user.firstName}</span>
+                </button>
+                {profileOpen && (
+                  <div className="profile-dropdown" role="menu">
+                    <Link to="/profile" className="profile-item" role="menuitem" onClick={() => setProfileOpen(false)}>Profile</Link>
+                    <Link to="/orders" className="profile-item" role="menuitem" onClick={() => setProfileOpen(false)}>My Orders</Link>
+                    <button className="profile-item" role="menuitem" onClick={() => { logout(); setProfileOpen(false); }}>Logout</button>
+                  </div>
+                )}
               </div>
             ) : (
               <button className="login-btn-header" onClick={() => setIsAuthModalOpen(true)} aria-label="Login"><LogIn size={18} /> Login</button>

@@ -62,32 +62,36 @@ const AuthModal = ({ isOpen, onClose }) => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validateForm();
 
     if (Object.keys(newErrors).length === 0) {
-      if (isLoginMode) {
-        const res = login(formData.email, formData.password);
-        if (res && res.ok === false) {
-          setErrors({ form: res.error });
-          return;
+      try {
+        if (isLoginMode) {
+          const res = await login(formData.email, formData.password);
+          if (res && res.ok === false) {
+            setErrors({ form: res.error });
+            return;
+          }
+        } else {
+          const res = await register(formData.email, formData.password, formData.firstName, formData.lastName, formData.phone);
+          if (res && res.ok === false) {
+            setErrors({ form: res.error });
+            return;
+          }
         }
-      } else {
-        const res = register(formData.email, formData.password, formData.firstName, formData.lastName, formData.phone);
-        if (res && res.ok === false) {
-          setErrors({ form: res.error });
-          return;
-        }
+        setFormData({
+          email: '',
+          password: '',
+          confirmPassword: '',
+          firstName: '',
+          lastName: '',
+          phone: ''
+        });
+      } catch (err) {
+        setErrors({ form: err.message || 'An error occurred' });
       }
-      setFormData({
-        email: '',
-        password: '',
-        confirmPassword: '',
-        firstName: '',
-        lastName: '',
-        phone: ''
-      });
     } else {
       setErrors(newErrors);
     }

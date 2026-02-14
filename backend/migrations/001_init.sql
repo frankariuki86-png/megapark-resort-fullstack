@@ -46,3 +46,15 @@ CREATE TABLE IF NOT EXISTS menu_items (
   availability boolean DEFAULT true,
   created_at timestamptz DEFAULT now()
 );
+
+-- Users table for customers and staff
+CREATE TABLE IF NOT EXISTS users (
+  id text PRIMARY KEY,
+  email text UNIQUE NOT NULL,
+  password_hash text NOT NULL,
+  name text,
+  phone text,
+  role text DEFAULT 'customer',
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
