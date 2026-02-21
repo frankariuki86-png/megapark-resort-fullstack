@@ -66,10 +66,11 @@
     "deliveryFee": 0,
     "tax": 0,
     "totalAmount": 1700,
-    "status": "pending",
+    "status": "cancelled",
     "paymentStatus": "pending",
     "paymentMethod": "mpesa",
-    "createdAt": "2026-02-10T20:04:56.529Z"
+    "createdAt": "2026-02-10T20:04:56.529Z",
+    "updatedAt": "2026-02-21T21:05:47.349Z"
   },
   {
     "id": "ORDER-1770753855647",

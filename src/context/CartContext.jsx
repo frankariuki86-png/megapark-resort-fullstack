@@ -205,6 +205,18 @@ export const CartProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...booking, customerName: customer.name, customerEmail: customer.email, customerPhone: customer.phone })
       });
+      
+      if (!createRes.ok) {
+        let errorMsg = 'Failed to create booking';
+        try {
+          const errorData = await createRes.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch {
+          errorMsg = `Server error: ${createRes.status}`;
+        }
+        throw new Error(errorMsg);
+      }
+      
       const created = await createRes.json();
       const bookingId = created.id || created.id || localId;
 
@@ -214,8 +226,19 @@ export const CartProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ totalPrice: booking.price || 0, customerName: customer.name || '', customerEmail: customer.email || '', bookingId })
       });
+      
+      if (!piResp.ok) {
+        let errorMsg = 'Failed to create payment intent';
+        try {
+          const errorData = await piResp.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch {
+          errorMsg = `Server error: ${piResp.status}`;
+        }
+        throw new Error(errorMsg);
+      }
+      
       const piData = await piResp.json();
-      if (!piResp.ok) throw new Error(piData.error || 'Failed to create payment intent');
 
       // Confirm payment (backend may mock confirm when stripe not configured)
       const confirmResp = await fetch('/api/payments/confirm-intent', {
@@ -223,8 +246,20 @@ export const CartProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ intentId: piData.intentId, paymentMethodId: 'pm_card_visa' })
       });
+      
+      if (!confirmResp.ok) {
+        let errorMsg = 'Payment confirmation failed';
+        try {
+          const confirmData = await confirmResp.json();
+          errorMsg = confirmData.error || errorMsg;
+        } catch {
+          errorMsg = `Server error: ${confirmResp.status}`;
+        }
+        throw new Error(errorMsg);
+      }
+      
       const confirmData = await confirmResp.json();
-      if (!confirmResp.ok || confirmData.status !== 'succeeded') throw new Error(confirmData.error || 'Payment failed');
+      if (confirmData.status !== 'succeeded') throw new Error(confirmData.error || 'Payment failed');
 
       // Update booking payment status on backend
       await fetch(`/api/bookings/${bookingId}`, {

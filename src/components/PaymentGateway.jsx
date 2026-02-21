@@ -37,8 +37,16 @@ const PaymentGateway = ({ isOpen, onClose, total, onPaymentSuccess }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phoneNumber: mpesaForm.phoneNumber, amount: total, accountName: mpesaForm.accountName })
       });
+      if (!resp.ok) {
+        let errorData;
+        try {
+          errorData = await resp.json();
+        } catch {
+          errorData = { error: 'M-Pesa initiation failed' };
+        }
+        throw new Error(errorData.error || 'M-Pesa initiation failed');
+      }
       const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || 'M-Pesa initiation failed');
 
       setIsProcessing(false);
       setPaymentConfirmed(true);
@@ -65,8 +73,16 @@ const PaymentGateway = ({ isOpen, onClose, total, onPaymentSuccess }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ totalPrice: total, currency: 'usd', items: [] })
       });
+      if (!resp.ok) {
+        let errorData;
+        try {
+          errorData = await resp.json();
+        } catch {
+          errorData = { error: 'Failed to create payment intent' };
+        }
+        throw new Error(errorData.error || 'Failed to create payment intent');
+      }
       const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || 'Failed to create payment intent');
 
       // Confirm intent (backend will mock when STRIPE not configured)
       const confirmResp = await fetch('/api/payments/confirm-intent', {
@@ -74,8 +90,17 @@ const PaymentGateway = ({ isOpen, onClose, total, onPaymentSuccess }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ intentId: data.intentId, paymentMethodId: 'pm_card_visa' })
       });
+      if (!confirmResp.ok) {
+        let errorData;
+        try {
+          errorData = await confirmResp.json();
+        } catch {
+          errorData = { error: 'Payment failed' };
+        }
+        throw new Error(errorData.error || 'Payment failed');
+      }
       const confirmData = await confirmResp.json();
-      if (!confirmResp.ok || confirmData.status !== 'succeeded') throw new Error(confirmData.error || 'Payment failed');
+      if (confirmData.status !== 'succeeded') throw new Error(confirmData.error || 'Payment failed');
 
       setIsProcessing(false);
       setPaymentConfirmed(true);

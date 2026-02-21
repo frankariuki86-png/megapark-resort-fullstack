@@ -1,10 +1,15 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../context/AdminContext';
+import { useUser } from '../context/UserContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { ToastProvider } from '../components/Toast';
 import ChartMini from '../components/ChartMini';
 import AdminUsersPage from './AdminUsers';
+import MenuManagement from '../components/MenuManagement';
+import RoomsManagement from '../components/RoomsManagement';
+import HallsManagement from '../components/HallsManagement';
+import StaffManagement from '../components/StaffManagement';
 import '../styles/admindashboard.css';
 import { Edit, Trash2, Check, X, PlusCircle, LogOut, DownloadCloud, Search } from 'lucide-react';
 
@@ -176,14 +181,14 @@ const AdminDashboard = () => {
       {/* Navigation Tabs */}
       <div className="admin-nav">
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-        <button className={`tab-btn ${activeTab === 'halls' ? 'active' : ''}`} onClick={() => setActiveTab('halls')}>Halls</button>
-        <button className={`tab-btn ${activeTab === 'rooms' ? 'active' : ''}`} onClick={() => setActiveTab('rooms')}>Rooms</button>
+        <button className={`tab-btn ${activeTab === 'menu-mgmt' ? 'active' : ''}`} onClick={() => setActiveTab('menu-mgmt')}>🍽️ Menu</button>
+        <button className={`tab-btn ${activeTab === 'rooms-mgmt' ? 'active' : ''}`} onClick={() => setActiveTab('rooms-mgmt')}>🛏️ Rooms</button>
+        <button className={`tab-btn ${activeTab === 'halls-mgmt' ? 'active' : ''}`} onClick={() => setActiveTab('halls-mgmt')}>🏛️ Halls</button>
+        <button className={`tab-btn ${activeTab === 'staff-mgmt' ? 'active' : ''}`} onClick={() => setActiveTab('staff-mgmt')}>👥 Staff</button>
         <button className={`tab-btn ${activeTab === 'bookings' ? 'active' : ''}`} onClick={() => setActiveTab('bookings')}>Bookings</button>
-        <button className={`tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>Events</button>
-        <button className={`tab-btn ${activeTab === 'menu' ? 'active' : ''}`} onClick={() => setActiveTab('menu')}>Menu</button>
         <button className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => setActiveTab('orders')}>Food Orders</button>
         {adminUser?.role === 'admin' && (
-          <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>👥 Users</button>
+          <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>Users</button>
         )}
       </div>
 
@@ -902,6 +907,26 @@ const AdminDashboard = () => {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Menu Management Tab */}
+        {activeTab === 'menu-mgmt' && (
+          <MenuManagement />
+        )}
+
+        {/* Rooms Management Tab */}
+        {activeTab === 'rooms-mgmt' && (
+          <RoomsManagement />
+        )}
+
+        {/* Halls Management Tab */}
+        {activeTab === 'halls-mgmt' && (
+          <HallsManagement />
+        )}
+
+        {/* Staff Management Tab */}
+        {activeTab === 'staff-mgmt' && (
+          <StaffManagement />
         )}
 
         {/* Users Tab (Admin Only) */}

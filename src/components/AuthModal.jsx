@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import '../styles/account.css';
 
 const AuthModal = ({ isOpen, onClose }) => {
-  const { register, login } = useUser();
+  const { register, login, googleLogin } = useUser();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
@@ -14,6 +14,23 @@ const AuthModal = ({ isOpen, onClose }) => {
     phone: ''
   });
   const [errors, setErrors] = useState({});
+
+  // Initialize Google Sign-In button when modal opens
+  useEffect(() => {
+    if (isOpen && window.google) {
+      // Initialize after a short delay to ensure DOM is ready
+      setTimeout(() => {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+          callback: handleGoogleSignIn
+        });
+        window.google.accounts.id.renderButton(
+          document.getElementById('google-signin-btn'),
+          { theme: 'outline', size: 'large', width: '100%' }
+        );
+      }, 100);
+    }
+  }, [isOpen]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -26,6 +43,19 @@ const AuthModal = ({ isOpen, onClose }) => {
         ...prev,
         [name]: ''
       }));
+    }
+  };
+
+  const handleGoogleSignIn = async (response) => {
+    try {
+      if (response.credential) {
+        const res = await googleLogin(response.credential);
+        if (!res.ok) {
+          setErrors({ form: res.error });
+        }
+      }
+    } catch (err) {
+      setErrors({ form: 'Google sign-in failed. Please try again.' });
     }
   };
 
@@ -199,6 +229,29 @@ const AuthModal = ({ isOpen, onClose }) => {
               {isLoginMode ? 'Login' : 'Create Account'}
             </button>
           </form>
+
+          <div style={{ margin: '20px 0', position: 'relative' }}>
+            <div style={{ 
+              position: 'absolute', 
+              left: 0, 
+              right: 0, 
+              top: '50%', 
+              borderTop: '1px solid #ddd',
+              transform: 'translateY(-50%)'
+            }}></div>
+            <p style={{ 
+              textAlign: 'center', 
+              background: 'white',
+              padding: '0 10px',
+              position: 'relative',
+              color: '#666',
+              fontSize: '14px'
+            }}>
+              Or continue with
+            </p>
+          </div>
+
+          <div id="google-signin-btn" style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}></div>
 
           <div className="auth-toggle">
             <p>

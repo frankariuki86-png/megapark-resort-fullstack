@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": "user-1771706559625",
+    "email": "testuser@megapark.com",
+    "passwordHash": "$2b$10$AzVrY./JLvV.zFGNGHfv7.DrHx88OiSb4tB.09FprtggUuTPdfPOG",
+    "name": "Test User",
+    "phone": "+254712345678",
+    "role": "customer",
+    "createdAt": "2026-02-21T20:42:39.626Z"
+  }
+]

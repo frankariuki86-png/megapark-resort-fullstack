@@ -3,8 +3,10 @@ const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
 const router = express.Router();
-const { LoginSchema } = require('../validators/schemas');
+const { LoginSchema, RegisterSchema } = require('../validators/schemas');
 const { generateTokenPair, refreshAccessToken } = require('../middleware/authenticate');
+const { sendWelcomeEmail } = require('../services/emailService');
+const { verifyGoogleToken, findOrCreateGoogleUser, sendGoogleWelcomeEmail } = require('../services/googleAuthService');
 
 module.exports = ({ logger, pgClient }) => {
   // Fallback mock user (only used when DB is not configured)
@@ -96,30 +98,98 @@ module.exports = ({ logger, pgClient }) => {
   // Register new user
   router.post('/register', async (req, res) => {
     try {
-      const { email, password, firstName, lastName, phone } = req.body;
-      if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
-      const lowerEmail = String(email).toLowerCase();
+      // Validate input against schema
+      const parsed = RegisterSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          error: 'Validation error', 
+          details: parsed.error.errors.map(e => ({ field: e.path.join('.'), message: e.message }))
+        });
+      }
+
+      const { email, password, firstName, lastName, phone } = parsed.data;
+      const lowerEmail = email.toLowerCase().trim();
 
       // If using Postgres
       if (pgClient) {
-        const exists = await pgClient.query('SELECT id FROM users WHERE email = $1 LIMIT 1', [lowerEmail]);
-        if (exists.rows.length > 0) return res.status(409).json({ error: 'Account already exists' });
-        const passwordHash = await bcrypt.hash(password, 10);
-        const id = `user-${Date.now()}`;
-        await pgClient.query('INSERT INTO users(id, email, password_hash, name, phone, role, is_active) VALUES($1,$2,$3,$4,$5,$6,$7)', [id, lowerEmail, passwordHash, `${firstName || ''} ${lastName || ''}`.trim(), phone || null, 'customer', true]);
-        return res.json({ ok: true, user: { id, email: lowerEmail, name: `${firstName || ''} ${lastName || ''}`.trim() } });
+        try {
+          const exists = await pgClient.query('SELECT id FROM users WHERE LOWER(email) = $1 LIMIT 1', [lowerEmail]);
+          if (exists.rows.length > 0) {
+            return res.status(409).json({ error: 'Account already exists' });
+          }
+
+          const passwordHash = await bcrypt.hash(password, 10);
+          const id = `user-${Date.now()}`;
+          const fullName = `${firstName} ${lastName}`.trim();
+          
+          await pgClient.query(
+            'INSERT INTO users(id, email, password_hash, name, phone, role, is_active, created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
+            [id, lowerEmail, passwordHash, fullName, phone || null, 'customer', true, new Date()]
+          );
+
+          // Send welcome email
+          try {
+            await sendWelcomeEmail(lowerEmail, fullName);
+          } catch (emailErr) {
+            logger.warn(`Welcome email failed for ${lowerEmail}:`, emailErr.message);
+            // Don't fail the registration if email fails
+          }
+
+          logger.info({ email: lowerEmail }, 'New user registered');
+          
+          return res.status(201).json({ 
+            ok: true, 
+            message: 'Account created successfully. A welcome email has been sent.',
+            user: { id, email: lowerEmail, name: fullName } 
+          });
+        } catch (dbErr) {
+          logger.error('Database error during registration:', dbErr.message);
+          return res.status(500).json({ error: 'Failed to create account' });
+        }
       }
 
       // Fallback to file-based storage in backend/data/users.json
-      const usersPath = require('path').join(__dirname, '..', 'data', 'users.json');
+      const usersPath = path.join(__dirname, '..', 'data', 'users.json');
       let users = [];
-      try { users = JSON.parse(require('fs').readFileSync(usersPath, 'utf8')); } catch (e) { users = []; }
-      if (users.find(u => u.email === lowerEmail)) return res.status(409).json({ error: 'Account already exists' });
+      try { 
+        users = JSON.parse(fs.readFileSync(usersPath, 'utf8')); 
+      } catch (e) { 
+        users = []; 
+      }
+      
+      if (users.find(u => u.email === lowerEmail)) {
+        return res.status(409).json({ error: 'Account already exists' });
+      }
+
       const passwordHash = await bcrypt.hash(password, 10);
-      const newUser = { id: `user-${Date.now()}`, email: lowerEmail, passwordHash, name: `${firstName || ''} ${lastName || ''}`.trim(), phone: phone || null, role: 'customer', createdAt: new Date().toISOString() };
+      const fullName = `${firstName} ${lastName}`.trim();
+      const newUser = { 
+        id: `user-${Date.now()}`, 
+        email: lowerEmail, 
+        passwordHash, 
+        name: fullName, 
+        phone: phone || null, 
+        role: 'customer', 
+        createdAt: new Date().toISOString() 
+      };
       users.push(newUser);
-      require('fs').writeFileSync(usersPath, JSON.stringify(users, null, 2));
-      return res.json({ ok: true, user: { id: newUser.id, email: newUser.email, name: newUser.name } });
+      fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+
+      // Send welcome email
+      try {
+        await sendWelcomeEmail(lowerEmail, fullName);
+      } catch (emailErr) {
+        logger.warn(`Welcome email failed for ${lowerEmail}:`, emailErr.message);
+        // Don't fail the registration if email fails
+      }
+
+      logger.info({ email: lowerEmail }, 'New user registered (file-based)');
+
+      return res.status(201).json({ 
+        ok: true,
+        message: 'Account created successfully. A welcome email has been sent.',
+        user: { id: newUser.id, email: newUser.email, name: newUser.name } 
+      });
     } catch (e) {
       logger.error('Register error', e.message || e.toString());
       return res.status(500).json({ error: 'server_error' });
@@ -144,6 +214,58 @@ module.exports = ({ logger, pgClient }) => {
   router.post('/logout', (req, res) => {
     logger.info({}, 'User logged out');
     return res.json({ message: 'Logged out successfully' });
+  });
+
+  // Google OAuth login endpoint
+  router.post('/google', async (req, res) => {
+    try {
+      const { idToken } = req.body;
+      if (!idToken) {
+        return res.status(400).json({ error: 'ID token required' });
+      }
+
+      // Verify Google token
+      const googleData = await verifyGoogleToken(idToken);
+      logger.info({ email: googleData.email }, 'Google token verified');
+
+      // Find or create user
+      const user = await findOrCreateGoogleUser(googleData, pgClient, logger);
+
+      // Generate JWT tokens
+      const tokens = generateTokenPair({ 
+        id: user.id, 
+        email: user.email, 
+        role: user.role || 'customer' 
+      });
+
+      // Send welcome email to new users
+      if (user.created_at && new Date(user.created_at) > new Date(Date.now() - 60000)) {
+        // User created less than 60 seconds ago (new user)
+        const { sendEmail } = require('../services/emailService');
+        await sendGoogleWelcomeEmail(
+          user.email,
+          user.name || 'User',
+          sendEmail
+        );
+      }
+
+      logger.info({ email: user.email }, 'User authenticated via Google');
+      
+      return res.json({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          role: user.role || 'customer',
+          picture: googleData.picture
+        }
+      });
+    } catch (err) {
+      logger.error('Google authentication failed', err.message || err.toString());
+      return res.status(401).json({ error: err.message || 'Google authentication failed' });
+    }
   });
 
   return router;

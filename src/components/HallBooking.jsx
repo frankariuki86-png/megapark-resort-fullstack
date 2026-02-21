@@ -137,8 +137,16 @@ const HallBooking = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      if (!resp.ok) {
+        let errorData;
+        try {
+          errorData = await resp.json();
+        } catch {
+          errorData = { error: 'Failed to send quote request' };
+        }
+        throw new Error(errorData.error || 'Failed to send quote request');
+      }
       const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || 'Failed to send quote request');
       setAddedMessage('Your request has been sent. We will contact you with a quotation.');
       setTimeout(() => setAddedMessage(''), 5000);
       setShowQuoteModal(false);

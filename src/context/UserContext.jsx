@@ -25,8 +25,16 @@ export const UserProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, firstName, lastName, phone })
       });
+      if (!resp.ok) {
+        let errorData;
+        try {
+          errorData = await resp.json();
+        } catch {
+          errorData = {};
+        }
+        return { ok: false, error: errorData.error || 'Registration failed' };
+      }
       const data = await resp.json();
-      if (!resp.ok) return { ok: false, error: data.error || 'Registration failed' };
       const u = data.user;
       setUser(u);
       setIsAuthModalOpen(false);
@@ -43,8 +51,16 @@ export const UserProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
+      if (!resp.ok) {
+        let errorData;
+        try {
+          errorData = await resp.json();
+        } catch {
+          errorData = {};
+        }
+        return { ok: false, error: errorData.error || 'Login failed' };
+      }
       const data = await resp.json();
-      if (!resp.ok) return { ok: false, error: data.error || 'Login failed' };
       const { accessToken: at, user: u } = data;
       if (at) {
         localStorage.setItem('accessToken', at);
@@ -55,6 +71,36 @@ export const UserProvider = ({ children }) => {
       return { ok: true, user: u };
     } catch (err) {
       return { ok: false, error: err.message || 'Login failed' };
+    }
+  }, []);
+
+  const googleLogin = useCallback(async (idToken) => {
+    try {
+      const resp = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      if (!resp.ok) {
+        let errorData;
+        try {
+          errorData = await resp.json();
+        } catch {
+          errorData = {};
+        }
+        return { ok: false, error: errorData.error || 'Google login failed' };
+      }
+      const data = await resp.json();
+      const { accessToken: at, user: u } = data;
+      if (at) {
+        localStorage.setItem('accessToken', at);
+        setAccessToken(at);
+      }
+      setUser(u);
+      setIsAuthModalOpen(false);
+      return { ok: true, user: u };
+    } catch (err) {
+      return { ok: false, error: err.message || 'Google login failed' };
     }
   }, []);
 
@@ -132,6 +178,7 @@ export const UserProvider = ({ children }) => {
     setIsAuthModalOpen,
     register,
     login,
+    googleLogin,
     logout,
     savedAddresses,
     addAddress,

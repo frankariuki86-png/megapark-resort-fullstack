@@ -51,6 +51,55 @@ const getTransporter = async () => {
 
 // Email Templates
 const templates = {
+  welcome: (data) => ({
+    subject: 'Welcome to MegaPark Hotel & Resort',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #0b7546;">Welcome to MegaPark Hotel & Resort! 🏨</h2>
+        <p>Hi ${data.name || 'Guest'},</p>
+        <p>Thank you for creating an account with us! We're excited to welcome you.</p>
+        <div style="background: linear-gradient(135deg, #0b7546 0%, #06324a 100%); color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3>What you can do now:</h3>
+          <ul>
+            <li>✓ Order delicious food from our restaurant</li>
+            <li>✓ Book comfortable rooms for your stay</li>
+            <li>✓ Request quotes for events and functions</li>
+            <li>✓ Track your orders and bookings in real-time</li>
+          </ul>
+        </div>
+        <p>Your account is ready to use. Log in with your credentials to get started!</p>
+        <p>If you have any questions or need assistance, our customer service team is here to help.</p>
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;"/>
+        <p><strong>Contact Us:</strong><br/>
+        Email: support@megapark-hotel.com<br/>
+        Phone: +254711768878</p>
+        <p style="color: #666; font-size: 12px; margin-top: 30px;">MegaPark Hotel & Resort | Nairobi, Kenya</p>
+      </div>
+    `
+  }),
+
+  paymentConfirmation: (data) => ({
+    subject: `Payment Confirmation - Transaction #${data.payment.id || 'PENDING'}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px;">
+        <h2>Payment Confirmation</h2>
+        <p>Hi ${data.payment.customerName || 'Guest'},</p>
+        <p>Your payment has been received successfully!</p>
+        <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <strong>Transaction ID:</strong> ${data.payment.id}<br/>
+          <strong>Amount:</strong> KES ${data.payment.amount?.toLocaleString() || '0.00'}<br/>
+          <strong>Payment Method:</strong> ${data.payment.method || 'Online'}<br/>
+          <strong>Date:</strong> ${new Date().toLocaleDateString()}<br/>
+          <strong>Status:</strong> <span style="color: green; font-weight: bold;">✓ Confirmed</span>
+        </div>
+        <p>You will receive further updates about your order/booking shortly.</p>
+        <p>Thank you for choosing MegaPark Hotel & Resort!</p>
+        <hr/>
+        <p style="color: #666; font-size: 12px;">MegaPark Hotel | Customer Service</p>
+      </div>
+    `
+  }),
+
   orderConfirmation: (order, user) => ({
     subject: `Order Confirmation #${order.id}`,
     html: `
@@ -138,9 +187,9 @@ const templates = {
         <p style="color: #666; font-size: 12px;">MegaPark Hotel | Automated Alert System</p>
       </div>
     `
-  })
-    ,
-    hallQuoteRequest: (request) => ({
+  }),
+
+  hallQuoteRequest: (request) => ({
       subject: `New Hall Quote Request: ${request.hallName || 'Hall'}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px;">
@@ -211,5 +260,21 @@ const sendEmail = async (to, templateName, data, logger) => {
 module.exports = {
   sendEmail,
   templates,
-  initializeTransporter
+  initializeTransporter,
+  // Convenience functions for common emails
+  sendWelcomeEmail: async (email, name) => {
+    return sendEmail(email, 'welcome', { name });
+  },
+  sendOrderConfirmationEmail: async (email, order, user) => {
+    return sendEmail(email, 'orderConfirmation', { order, user });
+  },
+  sendRoomBookingConfirmationEmail: async (email, booking) => {
+    return sendEmail(email, 'bookingConfirmation', { booking, type: 'room' });
+  },
+  sendHallBookingConfirmationEmail: async (email, booking) => {
+    return sendEmail(email, 'bookingConfirmation', { booking, type: 'hall' });
+  },
+  sendPaymentConfirmationEmail: async (email, payment) => {
+    return sendEmail(email, 'paymentConfirmation', { payment });
+  }
 };

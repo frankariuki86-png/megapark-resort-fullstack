@@ -60,10 +60,26 @@ const OrderUpdateSchema = z.object({
   items: z.array(OrderItemSchema).optional()
 }).refine(obj => Object.keys(obj).length > 0, 'At least one field required');
 
+// Password validation - requires min 8 chars, uppercase, lowercase, number
+const passwordValidation = z.string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number');
+
 // Auth Schema
 const LoginSchema = z.object({
   email: z.string().email('Invalid email'),
   password: z.string().min(1, 'Password required')
+});
+
+// Registration Schema with strong password requirements
+const RegisterSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: passwordValidation,
+  firstName: z.string().min(1, 'First name required').max(50),
+  lastName: z.string().min(1, 'Last name required').max(50),
+  phone: z.string().regex(/^\+?[0-9\s\-()]+$/, 'Invalid phone number').optional()
 });
 
 // Payment Schema
@@ -112,6 +128,53 @@ const HallUpdateSchema = z.object({
   availability: z.boolean().optional()
 }).refine(obj => Object.keys(obj).length > 0, 'At least one field required');
 
+// Booking Schemas
+const BookingCreateSchema = z.object({
+  customerName: z.string().min(1, 'Customer name required').max(255),
+  customerEmail: z.string().email('Invalid email').optional(),
+  customerPhone: z.string().regex(/^\+?[0-9\s\-()]+$/, 'Invalid phone number').optional(),
+  bookingType: z.enum(['room', 'hall']).default('room'),
+  bookingData: z.object({
+    roomId: z.string().optional(),
+    hallId: z.string().optional(), 
+    checkIn: z.string().datetime().optional(),
+    checkOut: z.string().datetime().optional(),
+    guests: z.number().int().min(1).optional(),
+    specialRequests: z.string().optional()
+  }).optional(),
+  total: z.number().min(0),
+  paymentStatus: z.enum(['pending', 'paid', 'failed', 'refunded']).default('pending'),
+  paymentData: z.record(z.any()).optional(),
+  status: z.enum(['booked', 'confirmed', 'cancelled', 'completed']).default('booked')
+});
+
+const BookingUpdateSchema = z.object({
+  status: z.enum(['booked', 'confirmed', 'cancelled', 'completed']).optional(),
+  paymentStatus: z.enum(['pending', 'paid', 'failed', 'refunded']).optional(),
+  bookingData: z.record(z.any()).optional()
+}).refine(obj => Object.keys(obj).length > 0, 'At least one field required');
+
+// Hall Quote Schemas
+const HallQuoteCreateSchema = z.object({
+  customerName: z.string().min(1, 'Customer name required').max(255),
+  customerEmail: z.string().email('Invalid email'),
+  customerPhone: z.string().regex(/^\+?[0-9\s\-()]+$/, 'Invalid phone number'),
+  hallId: z.string().optional(),
+  hallName: z.string().min(1, 'Hall name required').optional(),
+  eventDate: z.string().datetime('Invalid date'),
+  eventType: z.string().min(1, 'Event type required').max(100),
+  guestCount: z.number().int().min(1, 'Guest count must be at least 1'),
+  specialRequirements: z.string().optional(),
+  budget: z.number().min(0).optional(),
+  status: z.enum(['pending', 'responded', 'quoted', 'accepted', 'rejected']).default('pending')
+});
+
+const HallQuoteUpdateSchema = z.object({
+  status: z.enum(['pending', 'responded', 'quoted', 'accepted', 'rejected']).optional(),
+  quotedPrice: z.number().min(0).optional(),
+  notes: z.string().optional()
+}).refine(obj => Object.keys(obj).length > 0, 'At least one field required');
+
 // Room Schemas
 const RoomCreateSchema = z.object({
   roomNumber: z.string().min(1, 'room number required').max(50),
@@ -143,12 +206,17 @@ module.exports = {
   OrderCreateSchema,
   OrderUpdateSchema,
   LoginSchema,
+  RegisterSchema,
   PaymentIntentSchema,
   AdminUserCreateSchema,
   AdminUserUpdateSchema,
   HallCreateSchema,
   HallUpdateSchema,
   RoomCreateSchema,
-  RoomUpdateSchema
-  
+  RoomUpdateSchema,
+  BookingCreateSchema,
+  BookingUpdateSchema,
+  HallQuoteCreateSchema,
+  HallQuoteUpdateSchema,
+  passwordValidation
 };
