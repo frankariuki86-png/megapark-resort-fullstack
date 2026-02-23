@@ -20,10 +20,11 @@
     "deliveryFee": 0,
     "tax": 240,
     "totalAmount": 2240,
-    "status": "pending",
+    "status": "confirmed",
     "paymentStatus": "pending",
     "paymentMethod": "after",
-    "createdAt": "2026-02-13T22:47:35.167Z"
+    "createdAt": "2026-02-13T22:47:35.167Z",
+    "updatedAt": "2026-02-23T11:59:53.305Z"
   },
   {
     "id": "ORDER-1770753896563",
@@ -133,10 +134,11 @@
     "deliveryFee": 0,
     "tax": 0,
     "totalAmount": 1700,
-    "status": "pending",
+    "status": "delivered",
     "paymentStatus": "pending",
     "paymentMethod": "mpesa",
-    "createdAt": "2026-02-10T20:01:14.075Z"
+    "createdAt": "2026-02-10T20:01:14.075Z",
+    "updatedAt": "2026-02-23T12:00:05.728Z"
   },
   {
     "id": "ORDER-1770753620515",

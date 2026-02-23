@@ -14,7 +14,7 @@ const HallsManagement = () => {
     hallType: 'banquet',
     capacity: 100,
     area: '',
-    basePrice: '',
+    basePrice: 0,
     images: [],
     availability: true,
     packages: []
@@ -44,7 +44,7 @@ const HallsManagement = () => {
       hallType: 'banquet',
       capacity: 100,
       area: '',
-      basePrice: '',
+      basePrice: 0,
       images: [],
       availability: true,
       packages: []
@@ -54,7 +54,11 @@ const HallsManagement = () => {
   };
 
   const handleEdit = (hall) => {
-    setFormData(hall);
+    setFormData({
+      ...hall,
+      capacity: Number(hall.capacity) || 100,
+      basePrice: Number(hall.basePrice) || 0
+    });
     setEditingId(hall.id);
     setShowForm(true);
   };
@@ -141,8 +145,8 @@ const HallsManagement = () => {
               <input
                 type="number"
                 min="1"
-                value={formData.capacity}
-                onChange={(e) => setFormData({...formData, capacity: parseInt(e.target.value)})}
+                value={formData.capacity || 100}
+                onChange={(e) => setFormData({...formData, capacity: parseInt(e.target.value) || 100})}
                 required
               />
             </div>
@@ -161,8 +165,8 @@ const HallsManagement = () => {
               <label>Base Price (KES) *</label>
               <input
                 type="number"
-                value={formData.basePrice}
-                onChange={(e) => setFormData({...formData, basePrice: parseFloat(e.target.value)})}
+                value={formData.basePrice || 0}
+                onChange={(e) => setFormData({...formData, basePrice: parseFloat(e.target.value) || 0})}
                 required
               />
             </div>
@@ -206,7 +210,7 @@ const HallsManagement = () => {
                 <td>{hall.hallType}</td>
                 <td>{hall.capacity} people</td>
                 <td>{hall.area}</td>
-                <td>KES {hall.basePrice.toLocaleString()}</td>
+                <td>KES {(hall.basePrice || 0).toLocaleString()}</td>
                 <td>{hall.availability ? '✅' : '❌'}</td>
                 <td className="actions">
                   <button className="btn-small btn-edit" onClick={() => handleEdit(hall)}>Edit</button>

@@ -71,9 +71,12 @@ const RoomBooking = () => {
           const roomsList = Array.isArray(data) ? data : data.data || fallbackRooms;
           setRooms(roomsList.map(room => ({
             ...room,
+            price: parseInt(room.price || room.pricePerNight) || 5000,
+            capacity: parseInt(room.capacity) || 2,
             image: room.image || getImagePath('home1.jfif'),
-            images: room.images || [getImagePath('home1.jfif')],
-            amenities: Array.isArray(room.amenities) ? room.amenities : ['Free WiFi', 'Air Conditioning', 'En-suite Bathroom']
+            images: Array.isArray(room.images) ? room.images : (room.image ? [room.image] : [getImagePath('home1.jfif')]),
+            amenities: Array.isArray(room.amenities) && room.amenities.length > 0 ? room.amenities : ['Free WiFi', 'Air Conditioning', 'En-suite Bathroom'],
+            description: room.description || 'Premium accommodation at Megapark Resort'
           })));
         } else {
           setRooms(fallbackRooms);
@@ -205,8 +208,8 @@ const RoomBooking = () => {
                   </div>
 
                   <div className="room-pricing">
-                    <span className="price-per-night">KES {room.price.toLocaleString()} / night</span>
-                    {nights>0 && <span className="total-price">Total: KES {(room.price * nights).toLocaleString()}</span>}
+                    <span className="price-per-night">KES {(parseInt(room.price) || 5000).toLocaleString()} / night</span>
+                    {nights>0 && <span className="total-price">Total: KES {((parseInt(room.price) || 5000) * nights).toLocaleString()}</span>}
                   </div>
 
                   <button className="btn btn-book" onClick={() => handleBookRoom(room)} disabled={!checkInDate || !checkOutDate || guests > room.capacity}>

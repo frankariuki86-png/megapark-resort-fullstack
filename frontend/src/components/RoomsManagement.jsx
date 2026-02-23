@@ -13,7 +13,7 @@ const RoomsManagement = () => {
     type: 'standard',
     description: '',
     roomNumber: '',
-    pricePerNight: '',
+    pricePerNight: 0,
     capacity: 1,
     amenities: [],
     images: [],
@@ -43,7 +43,7 @@ const RoomsManagement = () => {
       type: 'standard',
       description: '',
       roomNumber: '',
-      pricePerNight: '',
+      pricePerNight: 0,
       capacity: 1,
       amenities: [],
       images: [],
@@ -54,7 +54,11 @@ const RoomsManagement = () => {
   };
 
   const handleEdit = (room) => {
-    setFormData(room);
+    setFormData({
+      ...room,
+      pricePerNight: Number(room.pricePerNight) || 0,
+      capacity: Number(room.capacity) || 1
+    });
     setEditingId(room.id);
     setShowForm(true);
   };
@@ -150,8 +154,8 @@ const RoomsManagement = () => {
               <label>Price Per Night (KES) *</label>
               <input
                 type="number"
-                value={formData.pricePerNight}
-                onChange={(e) => setFormData({...formData, pricePerNight: parseFloat(e.target.value)})}
+                value={formData.pricePerNight || 0}
+                onChange={(e) => setFormData({...formData, pricePerNight: parseFloat(e.target.value) || 0})}
                 required
               />
             </div>
@@ -161,8 +165,8 @@ const RoomsManagement = () => {
               <input
                 type="number"
                 min="1"
-                value={formData.capacity}
-                onChange={(e) => setFormData({...formData, capacity: parseInt(e.target.value)})}
+                value={formData.capacity || 1}
+                onChange={(e) => setFormData({...formData, capacity: parseInt(e.target.value) || 1})}
               />
             </div>
 

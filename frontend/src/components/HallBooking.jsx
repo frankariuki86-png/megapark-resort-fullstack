@@ -80,9 +80,18 @@ const HallBooking = () => {
           const hallsList = Array.isArray(data) ? data : data.data || fallbackHalls;
           setHalls(hallsList.map(hall => ({
             ...hall,
+            capacity: hall.capacity || 100,
+            area: hall.area || '200 sq meters',
+            basePrice: hall.basePrice || hall.price || 15000,
             image: hall.image || getImagePath('mega-park4.jfif'),
-            packages: hall.packages || [
-              { id: 'pkg-basic', name: 'Basic', price: hall.basePrice || 15000, includes: ['Venue Rental', 'Tables & Chairs'] },
+            packages: Array.isArray(hall.packages) && hall.packages.length > 0 ? hall.packages.map(pkg => ({
+              ...pkg,
+              price: parseInt(pkg.price) || parseInt(pkg.basePrice) || 15000,
+              includes: Array.isArray(pkg.includes) ? pkg.includes : ['Venue Rental', 'Tables & Chairs']
+            })) : [
+              { id: 'pkg-basic', name: 'Basic', price: parseInt(hall.basePrice) || parseInt(hall.price) || 15000, includes: ['Venue Rental', 'Tables & Chairs', 'Basic Setup'] },
+              { id: 'pkg-standard', name: 'Standard', price: (parseInt(hall.basePrice) || parseInt(hall.price) || 15000) * 1.5, includes: ['Venue Rental', 'Tables & Chairs', 'Full Setup', 'Sound System'] },
+              { id: 'pkg-premium', name: 'Premium', price: (parseInt(hall.basePrice) || parseInt(hall.price) || 15000) * 2.5, includes: ['Venue Rental', 'Tables & Chairs', 'Full AV Setup', 'Sound System', 'Event Coordinator'] }
             ]
           })));
         } else {
@@ -279,7 +288,7 @@ const HallBooking = () => {
                       <div key={pkg.id} className="package-option">
                         <div className="package-header">
                           <h5>{pkg.name}</h5>
-                          <span className="package-base-price">KES {pkg.price.toLocaleString()}</span>
+                          <span className="package-base-price">KES {(parseInt(pkg.price) || 15000).toLocaleString()}</span>
                         </div>
 
                         <ul className="package-includes">
@@ -290,9 +299,9 @@ const HallBooking = () => {
 
                         {eventDate && eventTime && guestCount <= hall.capacity && (
                           <div className="package-total">
-                            <span>Hall: KES {pkg.price.toLocaleString()}</span>
+                            <span>Hall: KES {(parseInt(pkg.price) || 15000).toLocaleString()}</span>
                             <span>Catering: KES {(guestCount * 500).toLocaleString()}</span>
-                            <span className="total">Total: KES {(pkg.price + guestCount * 500).toLocaleString()}</span>
+                            <span className="total">Total: KES {((parseInt(pkg.price) || 15000) + guestCount * 500).toLocaleString()}</span>
                           </div>
                         )}
 

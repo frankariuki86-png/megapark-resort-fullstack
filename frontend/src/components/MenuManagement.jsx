@@ -12,7 +12,7 @@ const MenuManagement = () => {
     name: '',
     description: '',
     category: 'main',
-    price: '',
+    price: 0,
     image: '',
     preparationTime: 20
   });
@@ -39,7 +39,7 @@ const MenuManagement = () => {
       name: '',
       description: '',
       category: 'main',
-      price: '',
+      price: 0,
       image: '',
       preparationTime: 20
     });
@@ -48,7 +48,11 @@ const MenuManagement = () => {
   };
 
   const handleEdit = (item) => {
-    setFormData(item);
+    setFormData({
+      ...item,
+      price: Number(item.price) || 0,
+      preparationTime: Number(item.preparationTime) || 20
+    });
     setEditingId(item.id);
     setShowForm(true);
   };
@@ -134,8 +138,8 @@ const MenuManagement = () => {
               <label>Price (KES) *</label>
               <input
                 type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value)})}
+                value={formData.price || 0}
+                onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
                 required
               />
             </div>

@@ -157,7 +157,13 @@ const Home = () => {
         const menuRes = await fetch('/api/menu', { headers });
         if (menuRes.ok) {
           const menuData = await menuRes.json();
-          setMenuItems(Array.isArray(menuData) ? menuData : menuData.data || fallbackMenuItems);
+          const items = Array.isArray(menuData) ? menuData : menuData.data || fallbackMenuItems;
+          setMenuItems(items.map(item => ({
+            ...item,
+            price: parseInt(item.price) || 1200,
+            image: item.image || getImagePath('Nyama-Choma-1-1080x1080.jpg.webp'),
+            description: item.description || 'Delicious meal from Megapark'
+          })));
         } else {
           setMenuItems(fallbackMenuItems);
         }
@@ -166,7 +172,13 @@ const Home = () => {
         const hallsRes = await fetch('/api/halls', { headers });
         if (hallsRes.ok) {
           const hallsData = await hallsRes.json();
-          setHalls(Array.isArray(hallsData) ? hallsData : hallsData.data || fallbackHalls);
+          const halls = Array.isArray(hallsData) ? hallsData : hallsData.data || fallbackHalls;
+          setHalls(halls.map(hall => ({
+            ...hall,
+            capacity: parseInt(hall.capacity) || 100,
+            image: hall.image || getImagePath('mega-park4.jfif'),
+            description: hall.description || 'Premium event venue'
+          })));
         } else {
           setHalls(fallbackHalls);
         }
@@ -175,7 +187,13 @@ const Home = () => {
         const roomsRes = await fetch('/api/rooms', { headers });
         if (roomsRes.ok) {
           const roomsData = await roomsRes.json();
-          setRooms(Array.isArray(roomsData) ? roomsData : roomsData.data || fallbackRooms);
+          const rooms = Array.isArray(roomsData) ? roomsData : roomsData.data || fallbackRooms;
+          setRooms(rooms.map(room => ({
+            ...room,
+            price: parseInt(room.price) || 5000,
+            image: room.image || getImagePath('home1.jfif'),
+            description: room.description || 'Comfortable accommodation'
+          })));
         } else {
           setRooms(fallbackRooms);
         }
@@ -342,7 +360,7 @@ const Home = () => {
                   <br />
                   <div className="card-meta">
                     <div className="product-quantity-container">
-                      <strong>KES {item.price.toLocaleString()}</strong>
+                      <strong>KES {(parseInt(item.price) || 1200).toLocaleString()}</strong>
                       <br /><br />
                       <label htmlFor={`quantity-${item.id}`}>Quantity:</label>
                       <select id={`quantity-${item.id}`} name="quantity" defaultValue="1" aria-label={`Quantity for ${item.name}`}>

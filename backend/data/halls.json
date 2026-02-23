@@ -3,7 +3,7 @@
     "id": "hall-001",
     "name": "Grand Ballroom",
     "description": "Spacious hall perfect for weddings, conferences, and large events with elegant decor and modern facilities",
-    "capacity": 500,
+    "capacity": 450,
     "pricePerDay": 50000,
     "images": [],
     "amenities": [
@@ -17,13 +17,13 @@
     ],
     "availability": true,
     "createdAt": "2024-01-01T00:00:00Z",
-    "updatedAt": "2024-01-01T00:00:00Z"
+    "updatedAt": "2026-02-23T12:24:35.085Z"
   },
   {
     "id": "hall-002",
     "name": "Conference Room",
     "description": "Modern meeting space with latest technology for corporate events, seminars, and business meetings",
-    "capacity": 100,
+    "capacity": 150,
     "pricePerDay": 15000,
     "images": [],
     "amenities": [
@@ -36,7 +36,7 @@
     ],
     "availability": true,
     "createdAt": "2024-01-01T00:00:00Z",
-    "updatedAt": "2024-01-01T00:00:00Z"
+    "updatedAt": "2026-02-23T12:28:22.842Z"
   },
   {
     "id": "hall-003",

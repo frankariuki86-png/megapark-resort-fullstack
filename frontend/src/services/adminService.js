@@ -1,8 +1,8 @@
 // Admin API Service - handles all admin operations (menu, rooms, halls, staff)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('adminToken');
+  const token = localStorage.getItem('__megapark_jwt__') || localStorage.getItem('adminToken');
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`

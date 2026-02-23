@@ -1,5 +1,18 @@
 [
   {
+    "id": "room-1771849789710",
+    "roomNumber": "236",
+    "name": "rerwerwetr",
+    "type": "suite",
+    "description": "terytrytrytry\ntrytr\ny\ntr\nytr\ny",
+    "pricePerNight": 10000,
+    "images": [],
+    "amenities": [],
+    "capacity": 4,
+    "availability": true,
+    "createdAt": "2026-02-23T12:29:49.710Z"
+  },
+  {
     "id": "room-001",
     "roomNumber": "101",
     "name": "Standard Room",
@@ -45,7 +58,7 @@
   },
   {
     "id": "room-003",
-    "roomNumber": "301",
+    "roomNumber": "30",
     "name": "Executive Suite",
     "type": "executive",
     "description": "Luxurious suite with separate living area, premium amenities, and personalized services",
@@ -67,7 +80,7 @@
     "capacity": 4,
     "availability": true,
     "createdAt": "2024-01-01T00:00:00Z",
-    "updatedAt": "2024-01-01T00:00:00Z"
+    "updatedAt": "2026-02-23T12:22:12.300Z"
   },
   {
     "id": "room-004",
@@ -75,7 +88,7 @@
     "name": "Double Room",
     "type": "double",
     "description": "Spacious room with two beds, perfect for friends or family groups traveling together",
-    "pricePerNight": 6500,
+    "pricePerNight": 7000,
     "images": [],
     "amenities": [
       "Free WiFi",
@@ -90,6 +103,6 @@
     "capacity": 2,
     "availability": true,
     "createdAt": "2024-01-01T00:00:00Z",
-    "updatedAt": "2024-01-01T00:00:00Z"
+    "updatedAt": "2026-02-23T12:22:38.454Z"
   }
 ]
