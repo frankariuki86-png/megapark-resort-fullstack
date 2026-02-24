@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/', // <- must be "/" for Render deployment
+  base: '/', 
   server: {
     // Proxy API calls to backend during development so frontend can use
     // relative paths like `/api/auth/register` without CORS issues.
